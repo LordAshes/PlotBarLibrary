@@ -1,0 +1,147 @@
+<HTML>
+
+  <!-- Include the js file for drawing plots !-->
+  <SCRIPT Language=Javascript Src='Plot.js' >
+  </SCRIPT>
+
+  <SCRIPT Language=Javascript>
+
+    // Set default min and max scale values
+	var scaleMin = 0;
+	var scaleMax = 10;
+
+    // Determine and initialize plot categories
+	var categories = [	["Income","white", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+						["Food","red", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+						["Taxes","green", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+						["Utilities","blue", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+						["Insurance","purple", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+						["Car","orange", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+						["Medical","black", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+						["Misc","yellow", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+					 ];
+					 
+	var months = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+					 
+	// Variables for holding total monthly income for each month
+	var monthIncome = [0,0,0,0,0,0,0,0,0,0,0,0];
+	
+	// Variables for holding total monthly expenses for each month
+	var monthExpenses = [0,0,0,0,0,0,0,0,0,0,0,0];
+					 
+	// Function for plots for the selected month and monthly summaries
+	function createPlots(month)
+	{
+		// Obtain the data to be ploted
+		getPlotData(); 
+		// Plot a large view of one month (defaults to January but can be changed by clicking any other month)
+		createPlot('Main',month,10,10,1200,800,0.75,"",false); 
+		// Create small views of each month
+		createPlot('Jan','01',900,35,1200,800,0.25,"January",true)
+		createPlot('Feb','02',1200,35,1200,800,0.25,"February",true)
+		createPlot('Mar','03',1500,35,1200,800,0.25,"March",true)
+		createPlot('Apr','04',900,250,1200,800,0.25,"April",true)
+		createPlot('May','05',1200,250,1200,800,0.25,"May",true)
+		createPlot('Jun','06',1500,250,1200,800,0.25,"June",true)
+		createPlot('Jul','07',900,465,1200,800,0.25,"July",true)
+		createPlot('Aug','08',1200,465,1200,800,0.25,"August",true)
+		createPlot('Sep','09',1500,465,1200,800,0.25,"September",true)
+		createPlot('Oct','10',900,680,1200,800,0.25,"October",true)
+		createPlot('Nov','11',1200,680,1200,800,0.25,"November",true)
+		createPlot('Dec','12',1500,680,1200,800,0.25,"December",true)
+	}
+
+	//--------------------------------------------------------
+	// Function for calculating and plotting individual plots
+	//--------------------------------------------------------
+	// name = Plot name used to uniquely identify the plot
+	// month = Two digit string of the month to be displayed
+	// x = Horizontal position of the plot in pixels
+	// y = Vertical position of the plot in pixels
+	// w = Width of the plot in pixels
+	// h = Height of the plot in pixels
+	// z = Zoom factor (1=100%)
+	// title = Title displayed above the plot
+	// summary = Indicates if summary is displayed below plot (false) or over plot (true)
+	function createPlot(name,monthStr,x,y,w,h,z,title="",summary=false)
+	{				
+		// Remove any previous version of the plot if it exists
+		try{ document.body.removeChild(document.getElementById(name)); }catch(e){;}
+		// Create a canvas object
+		var canvas = document.createElement("canvas");
+		// Assign the cavas object properties based on provided values
+		canvas.id = name;
+		canvas.width = w * z;
+		canvas.height = h * z;
+		canvas.style.position = "absolute";
+		canvas.style.left = x+"px";
+		canvas.style.top = y+"px";		
+		// Adds click event to change the large plot month 
+		canvas.onclick = function(e)
+		{
+			var m = parseInt(monthStr);
+			createPlots(monthStr);
+		}
+		// Adds canvas (plot)
+		document.body.appendChild(canvas);
+		
+		var m = parseInt(monthStr);
+		
+		// Sets the zoom factor for the plot
+		setZoom(z);
+		scaleMax = 0;
+		// Calculates the monthly income (must be first category) for each month
+		monthIncome[m-1]=categories[0][m+1];
+		// Set the maximum scale based on the selected month's income
+		scaleMax = Math.abs(Math.ceil((categories[0][1+m]/10)+1)*10);
+		// Calculates the monthly expenses (all categories besides first) for each month
+		monthExpenses[m-1]=0;
+		for (c = 1; c < categories.length; c++)
+		{
+			monthExpenses[m-1]=monthExpenses[m-1]+categories[c][m+1];
+			if(Math.abs(categories[c][1+m])>scaleMax)
+			{
+				// Set the maximum scale based on the selected month's category if it is larger than current scale value
+				scaleMax = Math.abs(Math.ceil((categories[c][1+m]/10)+1)*10);
+			}
+		}
+		// Set default title if provided title is blank
+		if(title==""){title='Budget For The Month Of '+months[m-1];}
+		// Draw the plot background with grid and scale
+		area(canvas,title,'#DDDDDD',scaleMin,scaleMax,w,h,10,50,100,65,50,30);		
+		var counter = 0;
+		categories.forEach(category =>
+		{
+			// Draw the bar for each category
+			bar(canvas,category[1],category[0],rSpace+rSpace+(counter*125),50,Math.abs(category[1+m]),"$"+category[1+m].toFixed(2),10)
+			counter++;
+		});
+		// Draw the summary notes
+		notes(canvas,"Net Saving: $"+(monthIncome[m-1]-monthExpenses[m-1]).toFixed(2),"Total Income: $"+monthIncome[m-1].toFixed(2),"Total Expenses: $"+monthExpenses[m-1].toFixed(2),summary);
+		// Draw the grid
+		grid(canvas); 
+	}
+		
+	//-----------------------------
+	// Function for obtaining data
+	//-----------------------------
+	// This demo just hard codes some values but in a real implementation this function would likely
+	// make an Ajax request to the server to obtain this data from a database or similar source
+	function getPlotData()
+	{
+	  categories = [	["Income","white", 4200, 4200, 8400, 4200, 4200, 4200, 4200, 4200, 8400, 4200, 4200, 4200],
+						["Food","red", 500, 480, 420, 510, 525, 470, 457, 507, 510, 502, 495, 610],
+						["Taxes","green", 1900, 0, 0, 0, 0, 0, 1700, 0, 0, 0, 0, 0], 
+						["Utilities","blue", 308, 320, 380, 340, 320, 340, 385, 370, 390, 400, 410, 423], 
+						["Insurance","purple", 538, 538, 538, 538, 538, 538, 538, 538, 538, 538, 538, 538], 
+						["Car","orange", 120, 80, 100, 80, 320, 100, 80, 120, 120, 80, 100, 110], 
+						["Medical","black", 20, 15, 35, 20, 17, 15, 20, 30, 27, 19, 23, 32], 
+						["Misc","yellow", 120, 80, 65, 78, 130, 92, 78, 65, 98, 135, 252, 320]
+					 ];		
+	}
+	
+  </SCRIPT>
+  
+  <BODY OnLoad="createPlots('01');"></BODY>
+  
+</HTML>
